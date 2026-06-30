@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Authentication and Users (Better Auth compatible)
+model User {
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  emailVerified Boolean @default(false)
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  // App Specific Relations
+  username String? @unique
+  bio String?
+
+  reviews Review[]
+  messages Message[]
+  conversations ConversationParticipant[]
+}
+
+model Session {
+  id String @id @default(cuid())
+  expiresAt DateTime
+  token String @unique
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id String @id @default(cuid())
+  accountId String
+  providerId String
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken String?
+  refreshToken String?
+  idToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  password String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Film Logging and Reviews
+model Movie {
+  id Int @id
+  title String
+  posterPath String?
+  reviews Review[]
+}
+
+model Review {
+  id String @id @default(cuid())
+  rating Float?
+  content String? @db.Text
+  watchedOn DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movieId Int
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  @@unique([userId, movieId])
+}
+
+// Dm system
+model Conversation {
+  id String @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  participants ConversationParticipant[]
+  messages Message[]
+}
+
+model ConversationParticipant {
+  id String @id @default(cuid())
+  joinedAt DateTime @default(now())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@unique([userId, conversationId])
+}
+
+model Message {
+  id String @id @default(cuid())
+  content String @db.Text
+  createdAt DateTime @default(now())
+  isRead Boolean @default(false)
+  senderId String
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
